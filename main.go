@@ -17,7 +17,7 @@ import (
 var app pitaya.Pitaya
 
 func main() {
-	serverType := "game"
+	serverType := "mjhaeb"
 	pitaya.SetLogger(utils.Logger(logrus.InfoLevel))
 
 	config := config.NewDefaultPitayaConfig()
