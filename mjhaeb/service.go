@@ -12,7 +12,6 @@ func init() {
 
 type service struct {
 	tiles        map[int32]int
-	tilesFeng    map[int32]int
 	defaultRules []int
 	huCore       *mahjong.HuCore
 }
@@ -20,7 +19,6 @@ type service struct {
 func NewService() mahjong.IService {
 	s := &service{
 		tiles:        make(map[int32]int),
-		tilesFeng:    make(map[int32]int),
 		defaultRules: []int{10, 8},
 		huCore:       mahjong.NewHuCore(14),
 	}
@@ -28,17 +26,14 @@ func NewService() mahjong.IService {
 	return s
 }
 func (s *service) init() {
-	for color := mahjong.ColorCharacter; color <= mahjong.ColorDragon; color++ {
+	for color := mahjong.ColorCharacter; color <= mahjong.ColorDot; color++ {
 		pc := mahjong.PointCountByColor[color]
-		for i := 0; i < pc; i++ {
+		for i := range pc {
 			tile := mahjong.MakeTile(color, i, 0)
-			if color < mahjong.ColorWind {
-				s.tiles[tile] = 4
-			}
-			s.tilesFeng[tile] = 4
+			s.tiles[tile] = 4
 		}
 	}
-
+	s.tiles[mahjong.TileZhong] = 4
 }
 
 func (s *service) GetAllTiles(conf *mahjong.Rule) map[int32]int {
