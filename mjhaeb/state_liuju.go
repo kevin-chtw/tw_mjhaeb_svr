@@ -17,5 +17,5 @@ func (s *StateLiuju) OnEnter() {
 }
 
 func (s *StateLiuju) onPlayerLiuJu() {
-	// 实现流局处理逻辑
+	s.game.NotifyGameOver()
 }
