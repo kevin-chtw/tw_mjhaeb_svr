@@ -29,7 +29,7 @@ func (s *service) init() {
 	for color := mahjong.ColorCharacter; color <= mahjong.ColorDot; color++ {
 		pc := mahjong.PointCountByColor[color]
 		for i := range pc {
-			tile := mahjong.MakeTile(color, i, 0)
+			tile := mahjong.MakeTile(color, i)
 			s.tiles[tile] = 4
 		}
 	}

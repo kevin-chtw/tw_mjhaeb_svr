@@ -5,8 +5,9 @@ import (
 
 	"github.com/kevin-chtw/tw_common/game"
 	"github.com/kevin-chtw/tw_common/mahjong"
-	"github.com/kevin-chtw/tw_proto/scproto"
-	"google.golang.org/protobuf/encoding/protojson"
+	"github.com/kevin-chtw/tw_proto/haebpb"
+	"github.com/topfreegames/pitaya/v3/pkg/logger"
+	"google.golang.org/protobuf/proto"
 )
 
 type Game struct {
@@ -16,9 +17,9 @@ type Game struct {
 	scorelator *mahjong.Scorelator
 }
 
-func NewGame(t *game.Table) game.IGame {
+func NewGame(t *game.Table, id int32) game.IGame {
 	g := &Game{}
-	g.Game = mahjong.NewGame(g, t)
+	g.Game = mahjong.NewGame(g, t, id)
 	g.Play = NewPlay(g)
 	g.messager = NewMessager(g)
 	g.scorelator = mahjong.NewScroelator(g.Game)
@@ -31,12 +32,13 @@ func (g *Game) OnStart() {
 }
 
 func (g *Game) OnReqMsg(seat int32, data []byte) error {
-	var msg scproto.SCReq
-	if err := protojson.Unmarshal(data, &msg); err != nil {
+	msg := &haebpb.HAEBReq{}
+	if err := proto.Unmarshal(data, msg); err != nil {
 		return err
 	}
+	logger.Log.Info(msg)
 
-	if trust := msg.GetScTrustReq(); trust != nil && !trust.GetTrust() {
+	if trust := msg.GetHaebTrustReq(); trust != nil && !trust.GetTrust() {
 		g.GetPlayer(seat).SetTrusted(false)
 		return nil
 	}
@@ -44,7 +46,7 @@ func (g *Game) OnReqMsg(seat int32, data []byte) error {
 	if g.CurState == nil {
 		return errors.New("invalid state")
 	}
-	return g.CurState.OnPlayerMsg(seat, &msg)
+	return g.CurState.OnPlayerMsg(seat, msg)
 }
 
 func (g *Game) GetMessager() *Messager {

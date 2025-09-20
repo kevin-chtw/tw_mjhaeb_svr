@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/kevin-chtw/tw_common/mahjong"
-	"github.com/kevin-chtw/tw_proto/scproto"
+	"github.com/kevin-chtw/tw_proto/haebpb"
 	"github.com/topfreegames/pitaya/v3/pkg/logger"
 
 	"google.golang.org/protobuf/proto"
@@ -36,7 +36,7 @@ func (s *StateWait) OnEnter() {
 		operates := s.GetPlay().FetchWaitOperates(i)
 		s.operatesForSeats[i] = operates
 
-		if operates.Value != 0 && !trusted {
+		if operates.Value != mahjong.OperatePass && !trusted {
 			s.GetMessager().sendRequestAck(i, operates)
 		} else {
 			s.setReqOperate(i, s.getDefaultOperate(i))
@@ -50,8 +50,8 @@ func (s *StateWait) OnEnter() {
 }
 
 func (s *StateWait) OnMsg(seat int32, msg proto.Message) error {
-	req := msg.(*scproto.SCReq)
-	optReq := req.GetScRequestReq()
+	req := msg.(*haebpb.HAEBReq)
+	optReq := req.GetHaebRequestReq()
 	if optReq == nil || optReq.Seat != seat || !s.game.IsRequestID(seat, optReq.Requestid) {
 		return errors.New("invalid msg")
 	}

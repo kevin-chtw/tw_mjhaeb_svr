@@ -17,5 +17,5 @@ func (s *StateLiuju) OnEnter() {
 }
 
 func (s *StateLiuju) onPlayerLiuJu() {
-	s.game.NotifyGameOver()
+	s.game.OnGameOver()
 }

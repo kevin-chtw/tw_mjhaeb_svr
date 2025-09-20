@@ -19,11 +19,12 @@ func NewStatePaohu(game mahjong.IGame, args ...any) mahjong.IState {
 }
 
 func (s *StatePaohu) OnEnter() {
-	multiples := s.GetPlay().Zimo()
 	s.game.GetMessager().sendHuAck(s.huSeats, s.GetPlay().GetCurSeat())
-	s.game.GetScorelator().Calculate(multiples)
+	// TODO 点炮胡牌
+	//multiples := s.GetPlay().PaoHu()
+	//s.game.GetScorelator().Calculate(multiples)
 	s.game.GetMessager().sendResult(true, 0, 0)
 
 	s.game.GetMessager().sendAnimationAck()
-	s.AsyncMsgTimer(s.onMsg, time.Second*5, s.game.NotifyGameOver)
+	s.AsyncMsgTimer(s.onMsg, time.Second*5, s.game.OnGameOver)
 }
