@@ -1,6 +1,8 @@
 package mjhaeb
 
-import "github.com/kevin-chtw/tw_common/mahjong"
+import (
+	"github.com/kevin-chtw/tw_common/mahjong"
+)
 
 type StateLiuju struct {
 	*StateResult
@@ -13,9 +15,6 @@ func NewStateLiuju(game mahjong.IGame, args ...any) mahjong.IState {
 }
 
 func (s *StateLiuju) OnEnter() {
-	s.onPlayerLiuJu()
-}
-
-func (s *StateLiuju) onPlayerLiuJu() {
-	s.game.OnGameOver()
+	s.game.GetMessager().sendResult(true)
+	s.handleOver()
 }

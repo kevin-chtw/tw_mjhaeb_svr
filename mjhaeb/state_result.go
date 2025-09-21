@@ -1,6 +1,8 @@
 package mjhaeb
 
 import (
+	"time"
+
 	"github.com/kevin-chtw/tw_common/mahjong"
 	"github.com/kevin-chtw/tw_proto/haebpb"
 	"google.golang.org/protobuf/proto"
@@ -24,6 +26,10 @@ func (s *StateResult) onMsg(seat int32, msg proto.Message) error {
 	if aniReq != nil && seat == aniReq.Seat && s.game.IsRequestID(seat, aniReq.Requestid) {
 		s.game.OnGameOver()
 	}
-
 	return nil
+}
+
+func (s *StateResult) handleOver() {
+	s.game.GetMessager().sendAnimationAck()
+	s.AsyncMsgTimer(s.onMsg, time.Second*5, s.game.OnGameOver)
 }

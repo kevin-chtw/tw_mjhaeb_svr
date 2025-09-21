@@ -23,6 +23,7 @@ func (m *Messager) sendGameStartAck() {
 		Banker:    m.play.GetBanker(),
 		TileCount: m.play.GetDealer().GetRestCount(),
 		Scores:    m.play.GetCurScores(),
+		Property:  m.game.GetRule().ToString(),
 	}
 	ack := &haebpb.HAEBAck{HaebGameStartAck: startAck}
 	m.game.Send2Player(ack, game.SeatAll)
@@ -119,6 +120,19 @@ func (m *Messager) sendDrawAck(tile int32) {
 	}
 }
 
-func (m *Messager) sendResult(isLiuJu bool, paoSeat, paoCiSeat int32) {
-	// 实现发送麻将结果
+func (m *Messager) sendResult(liuju bool) {
+	resultAck := &haebpb.HAEBResultAck{
+		Liuju:         liuju,
+		PlayerResults: make([]*haebpb.HAEBPlayerResult, m.game.GetPlayerCount()),
+	}
+	for i := range resultAck.PlayerResults {
+		resultAck.PlayerResults[i] = &haebpb.HAEBPlayerResult{
+			Seat:     int32(i),
+			CurScore: m.game.GetPlayer(int32(i)).GetCurScore(),
+			WinScore: m.game.GetPlayer(int32(i)).GetScoreChangeWithTax(),
+			Tiles:    m.play.GetPlayData(int32(i)).GetHandTiles(),
+		}
+	}
+	ack := &haebpb.HAEBAck{HaebResultAck: resultAck}
+	m.game.Send2Player(ack, game.SeatAll)
 }

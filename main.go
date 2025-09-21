@@ -37,10 +37,8 @@ func main() {
 
 func initServices() {
 	matchsvc := service.NewMatch(app)
-	app.Register(matchsvc, component.WithName("match"), component.WithNameFunc(strings.ToLower))
 	app.RegisterRemote(matchsvc, component.WithName("match"), component.WithNameFunc(strings.ToLower))
 
 	playersvc := service.NewPlayer(app)
 	app.Register(playersvc, component.WithName("player"), component.WithNameFunc(strings.ToLower))
-	app.RegisterRemote(playersvc, component.WithName("player"), component.WithNameFunc(strings.ToLower))
 }
