@@ -21,7 +21,6 @@ func (s *StateZimo) OnEnter() {
 	multiples := s.GetPlay().Zimo()
 	s.game.GetScorelator().AddMultiple(mahjong.ScoreReasonHu, multiples)
 	s.game.GetScorelator().Calculate()
-
 	s.game.GetMessager().sendResult(false)
 	s.handleOver()
 }

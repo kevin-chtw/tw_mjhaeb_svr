@@ -49,7 +49,7 @@ func (s *service) GetDefaultRules() []int {
 }
 
 func (s *service) CheckHu(data *mahjong.HuData, rule *mahjong.Rule) (*mahjong.HuResult, bool) {
-	if !s.huCore.CheckBasicHu(data.TilesInHand, 0) {
+	if !s.huCore.CheckBasicHu(data.TilesInHand, data.LaiCount) {
 		return nil, false
 	}
 	result := &mahjong.HuResult{
