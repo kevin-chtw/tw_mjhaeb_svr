@@ -68,6 +68,17 @@ func (m *Messager) sendDiscardAck() {
 	m.game.Send2Player(ack, game.SeatAll)
 }
 
+func (m *Messager) sendChowAck(seat, leftTile int32) {
+	chowAck := &haebpb.HAEBChowAck{
+		Seat:     seat,
+		From:     m.play.GetCurSeat(),
+		Tile:     m.play.GetCurTile(),
+		LeftTile: leftTile,
+	}
+	ack := &haebpb.HAEBAck{HaebChowAck: chowAck}
+	m.game.Send2Player(ack, game.SeatAll)
+}
+
 func (m *Messager) sendPonAck(seat int32) {
 	ponAck := &haebpb.HAEBPonAck{
 		Seat: seat,
