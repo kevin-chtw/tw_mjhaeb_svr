@@ -2,6 +2,7 @@ package mjhaeb
 
 import (
 	"maps"
+	"slices"
 
 	"github.com/kevin-chtw/tw_common/mahjong"
 )
@@ -11,14 +12,14 @@ func init() {
 }
 
 type service struct {
-	tiles        map[int32]int
+	tiles        map[mahjong.Tile]int
 	defaultRules []int
 	huCore       *mahjong.HuCore
 }
 
 func NewService() mahjong.IService {
 	s := &service{
-		tiles:        make(map[int32]int),
+		tiles:        make(map[mahjong.Tile]int),
 		defaultRules: []int{10, 8},
 		huCore:       mahjong.NewHuCore(14),
 	}
@@ -36,7 +37,7 @@ func (s *service) init() {
 	s.tiles[mahjong.TileZhong] = 4
 }
 
-func (s *service) GetAllTiles(conf *mahjong.Rule) map[int32]int {
+func (s *service) GetAllTiles(conf *mahjong.Rule) map[mahjong.Tile]int {
 	return s.tiles
 }
 
@@ -59,14 +60,14 @@ func (s *service) CheckHu(data *mahjong.HuData, rule *mahjong.Rule) (*mahjong.Hu
 	return result, true
 }
 
-func (s *service) CheckCall(data *mahjong.HuData, rule *mahjong.Rule) map[int32]map[int32]int64 {
-	callData := make(map[int32]map[int32]int64)
+func (s *service) CheckCall(data *mahjong.HuData, rule *mahjong.Rule) map[mahjong.Tile]map[mahjong.Tile]int64 {
+	callData := make(map[mahjong.Tile]map[mahjong.Tile]int64)
 	count := len(data.TilesInHand) % 3
 	switch count {
 	case 2:
 		// 去重处理
-		checkTiles := make([]int32, 0)
-		tileSet := make(map[int32]bool)
+		checkTiles := make([]mahjong.Tile, 0)
+		tileSet := make(map[mahjong.Tile]bool)
 		for _, tile := range data.TilesInHand {
 			if !tileSet[tile] {
 				tileSet[tile] = true
@@ -76,9 +77,7 @@ func (s *service) CheckCall(data *mahjong.HuData, rule *mahjong.Rule) map[int32]
 
 		// 临时复制数据
 		tempData := *data
-		tempTiles := make([]int32, len(data.TilesInHand))
-		copy(tempTiles, data.TilesInHand)
-		tempData.TilesInHand = tempTiles
+		tempData.TilesInHand = slices.Clone(data.TilesInHand)
 
 		for _, tile := range checkTiles {
 			// 移除当前检查的牌
@@ -87,7 +86,7 @@ func (s *service) CheckCall(data *mahjong.HuData, rule *mahjong.Rule) map[int32]
 			// 检查叫牌
 			fans := s.checkCallFan(&tempData, rule)
 			if len(fans) > 0 {
-				callData[tile] = make(map[int32]int64)
+				callData[tile] = make(map[mahjong.Tile]int64)
 				maps.Copy(callData[tile], fans)
 			}
 
@@ -105,10 +104,10 @@ func (s *service) CheckCall(data *mahjong.HuData, rule *mahjong.Rule) map[int32]
 	return callData
 }
 
-func (s *service) checkCallFan(data *mahjong.HuData, rule *mahjong.Rule) map[int32]int64 {
-	fans := make(map[int32]int64)
+func (s *service) checkCallFan(data *mahjong.HuData, rule *mahjong.Rule) map[mahjong.Tile]int64 {
+	fans := make(map[mahjong.Tile]int64)
 	testTiles := s.GetAllTiles(rule)
-	originalTiles := make([]int32, len(data.TilesInHand))
+	originalTiles := make([]mahjong.Tile, len(data.TilesInHand))
 	copy(originalTiles, data.TilesInHand)
 
 	for tile := range testTiles {

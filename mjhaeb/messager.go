@@ -34,7 +34,7 @@ func (m *Messager) sendOpenDoorAck() {
 	for i := range count {
 		openDoor := &haebpb.HAEBOpenDoorAck{
 			Seat:  i,
-			Tiles: m.play.GetPlayData(i).GetHandTiles(),
+			Tiles: m.play.GetPlayData(i).GetHandTilesInt32(),
 		}
 		ack := &haebpb.HAEBAck{HaebOpenDoorAck: openDoor}
 		m.game.Send2Player(ack, i)
@@ -62,18 +62,18 @@ func (m *Messager) sendRequestAck(seat int32, operates *mahjong.Operates) {
 func (m *Messager) sendDiscardAck() {
 	discardAck := &haebpb.HAEBDiscardAck{
 		Seat: m.play.GetCurSeat(),
-		Tile: m.play.GetCurTile(),
+		Tile: m.play.GetCurTile().ToInt32(),
 	}
 	ack := &haebpb.HAEBAck{HaebDiscardAck: discardAck}
 	m.game.Send2Player(ack, game.SeatAll)
 }
 
-func (m *Messager) sendChowAck(seat, leftTile int32) {
+func (m *Messager) sendChowAck(seat int32, leftTile mahjong.Tile) {
 	chowAck := &haebpb.HAEBChowAck{
 		Seat:     seat,
 		From:     m.play.GetCurSeat(),
-		Tile:     m.play.GetCurTile(),
-		LeftTile: leftTile,
+		Tile:     m.play.GetCurTile().ToInt32(),
+		LeftTile: leftTile.ToInt32(),
 	}
 	ack := &haebpb.HAEBAck{HaebChowAck: chowAck}
 	m.game.Send2Player(ack, game.SeatAll)
@@ -83,17 +83,17 @@ func (m *Messager) sendPonAck(seat int32) {
 	ponAck := &haebpb.HAEBPonAck{
 		Seat: seat,
 		From: m.play.GetCurSeat(),
-		Tile: m.play.GetCurTile(),
+		Tile: m.play.GetCurTile().ToInt32(),
 	}
 	ack := &haebpb.HAEBAck{HaebPonAck: ponAck}
 	m.game.Send2Player(ack, game.SeatAll)
 }
 
-func (m *Messager) sendKonAck(seat, tile int32, konType mahjong.KonType) {
+func (m *Messager) sendKonAck(seat int32, tile mahjong.Tile, konType mahjong.KonType) {
 	konAck := &haebpb.HAEBKonAck{
 		Seat:    seat,
 		From:    m.play.GetCurSeat(),
-		Tile:    tile,
+		Tile:    tile.ToInt32(),
 		KonType: int32(konType),
 	}
 	ack := &haebpb.HAEBAck{HaebKonAck: konAck}
@@ -103,7 +103,7 @@ func (m *Messager) sendKonAck(seat, tile int32, konType mahjong.KonType) {
 func (m *Messager) sendHuAck(huSeats []int32, paoSeat int32) {
 	huAck := &haebpb.HAEBHuAck{
 		PaoSeat: paoSeat,
-		Tile:    m.play.GetCurTile(),
+		Tile:    m.play.GetCurTile().ToInt32(),
 		HuData:  make([]*haebpb.HAEBHuData, len(huSeats)),
 	}
 	for i := range huSeats {
@@ -116,14 +116,14 @@ func (m *Messager) sendHuAck(huSeats []int32, paoSeat int32) {
 	m.game.Send2Player(ack, game.SeatAll)
 }
 
-func (m *Messager) sendDrawAck(tile int32) {
+func (m *Messager) sendDrawAck(tile mahjong.Tile) {
 	drawAck := &haebpb.HAEBDrawAck{
 		Seat: m.play.GetCurSeat(),
-		Tile: tile,
+		Tile: tile.ToInt32(),
 	}
 	ack := &haebpb.HAEBAck{HaebDrawAck: drawAck}
 	m.game.Send2Player(ack, drawAck.Seat)
-	drawAck.Tile = mahjong.TileNull
+	drawAck.Tile = mahjong.TileNull.ToInt32()
 	for i := range m.game.GetPlayerCount() {
 		if i != drawAck.Seat {
 			m.game.Send2Player(ack, i)
@@ -141,7 +141,7 @@ func (m *Messager) sendResult(liuju bool) {
 			Seat:     int32(i),
 			CurScore: m.game.GetPlayer(int32(i)).GetCurScore(),
 			WinScore: m.game.GetPlayer(int32(i)).GetScoreChangeWithTax(),
-			Tiles:    m.play.GetPlayData(int32(i)).GetHandTiles(),
+			Tiles:    m.play.GetPlayData(int32(i)).GetHandTilesInt32(),
 		}
 	}
 	ack := &haebpb.HAEBAck{HaebResultAck: resultAck}

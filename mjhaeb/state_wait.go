@@ -12,8 +12,8 @@ import (
 )
 
 type ReqOperate struct {
-	Operate int32 //操作
-	Tile    int32 //牌
+	Operate int32        //操作
+	Tile    mahjong.Tile //牌
 }
 
 type StateWait struct {
@@ -64,7 +64,7 @@ func (s *StateWait) OnMsg(seat int32, msg proto.Message) error {
 	if !s.isValidOperate(seat, int(optReq.RequestType)) {
 		return errors.New("invalid operate")
 	}
-	s.setReqOperate(seat, optReq.RequestType, optReq.Tile)
+	s.setReqOperate(seat, optReq.RequestType, mahjong.Tile(optReq.Tile))
 	s.tryHandleAction()
 	return nil
 }
@@ -82,7 +82,7 @@ func (s *StateWait) Timeout() {
 	s.tryHandleAction()
 }
 
-func (s *StateWait) setReqOperate(seat, operate, tile int32) {
+func (s *StateWait) setReqOperate(seat, operate int32, tile mahjong.Tile) {
 	if s.game.IsValidSeat(seat) {
 		s.reqOperateForSeats[seat] = &ReqOperate{Operate: operate, Tile: tile}
 	}
