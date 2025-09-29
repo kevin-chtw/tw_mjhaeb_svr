@@ -11,6 +11,20 @@ type Messager struct {
 	play *Play
 }
 
+func ToCallData(callData map[mahjong.Tile]map[mahjong.Tile]int64) map[int32]*haebpb.CallData {
+	result := make(map[int32]*haebpb.CallData)
+	for tile, callMap := range callData {
+		callPb := &haebpb.CallData{
+			CallTiles: make(map[int32]int64),
+		}
+		for tile, fan := range callMap {
+			callPb.CallTiles[int32(tile)] = fan
+		}
+		result[int32(tile)] = callPb
+	}
+	return result
+}
+
 func NewMessager(game *Game) *Messager {
 	return &Messager{
 		game: game,
@@ -33,8 +47,9 @@ func (m *Messager) sendOpenDoorAck() {
 	count := m.game.GetPlayerCount()
 	for i := range count {
 		openDoor := &haebpb.HAEBOpenDoorAck{
-			Seat:  i,
-			Tiles: m.play.GetPlayData(i).GetHandTilesInt32(),
+			Seat:     i,
+			Tiles:    m.play.GetPlayData(i).GetHandTilesInt32(),
+			CallData: ToCallData(m.play.GetPlayData(i).GetCallDataMap()),
 		}
 		ack := &haebpb.HAEBAck{HaebOpenDoorAck: openDoor}
 		m.game.Send2Player(ack, i)
@@ -74,6 +89,7 @@ func (m *Messager) sendChowAck(seat int32, leftTile mahjong.Tile) {
 		From:     m.play.GetCurSeat(),
 		Tile:     m.play.GetCurTile().ToInt32(),
 		LeftTile: leftTile.ToInt32(),
+		CallData: ToCallData(m.play.GetPlayData(seat).GetCallDataMap()),
 	}
 	ack := &haebpb.HAEBAck{HaebChowAck: chowAck}
 	m.game.Send2Player(ack, game.SeatAll)
@@ -81,9 +97,10 @@ func (m *Messager) sendChowAck(seat int32, leftTile mahjong.Tile) {
 
 func (m *Messager) sendPonAck(seat int32) {
 	ponAck := &haebpb.HAEBPonAck{
-		Seat: seat,
-		From: m.play.GetCurSeat(),
-		Tile: m.play.GetCurTile().ToInt32(),
+		Seat:     seat,
+		From:     m.play.GetCurSeat(),
+		Tile:     m.play.GetCurTile().ToInt32(),
+		CallData: ToCallData(m.play.GetPlayData(seat).GetCallDataMap()),
 	}
 	ack := &haebpb.HAEBAck{HaebPonAck: ponAck}
 	m.game.Send2Player(ack, game.SeatAll)
@@ -118,12 +135,14 @@ func (m *Messager) sendHuAck(huSeats []int32, paoSeat int32) {
 
 func (m *Messager) sendDrawAck(tile mahjong.Tile) {
 	drawAck := &haebpb.HAEBDrawAck{
-		Seat: m.play.GetCurSeat(),
-		Tile: tile.ToInt32(),
+		Seat:     m.play.GetCurSeat(),
+		Tile:     tile.ToInt32(),
+		CallData: ToCallData(m.play.GetPlayData(m.play.GetCurSeat()).GetCallDataMap()),
 	}
 	ack := &haebpb.HAEBAck{HaebDrawAck: drawAck}
 	m.game.Send2Player(ack, drawAck.Seat)
 	drawAck.Tile = mahjong.TileNull.ToInt32()
+	drawAck.CallData = nil
 	for i := range m.game.GetPlayerCount() {
 		if i != drawAck.Seat {
 			m.game.Send2Player(ack, i)

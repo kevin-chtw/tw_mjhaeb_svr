@@ -26,6 +26,7 @@ func NewService() mahjong.IService {
 	s.init()
 	return s
 }
+
 func (s *service) init() {
 	for color := mahjong.ColorCharacter; color <= mahjong.ColorDot; color++ {
 		pc := mahjong.PointCountByColor[color]
