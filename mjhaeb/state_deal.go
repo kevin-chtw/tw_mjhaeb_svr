@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/kevin-chtw/tw_common/mahjong"
-	"github.com/kevin-chtw/tw_proto/haebpb"
+	"github.com/kevin-chtw/tw_proto/mjpb"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -29,9 +29,10 @@ func (s *StateDeal) OnEnter() {
 }
 
 func (s *StateDeal) OnMsg(seat int32, msg proto.Message) error {
-	req := msg.(*haebpb.HAEBReq)
-
-	aniReq := req.GetHaebAnimationReq()
+	aniReq, ok := msg.(*mjpb.MJAnimationReq)
+	if !ok {
+		return nil
+	}
 	if aniReq != nil && seat == aniReq.Seat && s.game.IsRequestID(seat, aniReq.Requestid) {
 		s.game.SetNextState(NewStateDiscard)
 	}

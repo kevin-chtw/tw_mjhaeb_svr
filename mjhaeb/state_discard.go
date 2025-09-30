@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/kevin-chtw/tw_common/mahjong"
-	"github.com/kevin-chtw/tw_proto/haebpb"
+	"github.com/kevin-chtw/tw_proto/mjpb"
 	"github.com/topfreegames/pitaya/v3/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
@@ -41,8 +41,10 @@ func (s *StateDiscard) OnMsg(seat int32, msg proto.Message) error {
 		return errors.New("not current seat")
 	}
 
-	req := msg.(*haebpb.HAEBReq)
-	optReq := req.GetHaebRequestReq()
+	optReq, ok := msg.(*mjpb.MJRequestReq)
+	if !ok {
+		return nil
+	}
 	if optReq == nil || optReq.Seat != seat || !s.game.IsRequestID(seat, optReq.Requestid) {
 		return errors.New("msg error")
 	}

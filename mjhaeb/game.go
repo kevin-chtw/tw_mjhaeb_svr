@@ -6,6 +6,7 @@ import (
 	"github.com/kevin-chtw/tw_common/game"
 	"github.com/kevin-chtw/tw_common/mahjong"
 	"github.com/kevin-chtw/tw_proto/haebpb"
+	"github.com/kevin-chtw/tw_proto/mjpb"
 	"github.com/topfreegames/pitaya/v3/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
@@ -38,7 +39,13 @@ func (g *Game) OnReqMsg(seat int32, data []byte) error {
 	}
 	logger.Log.Info(msg)
 
-	if trust := msg.GetHaebTrustReq(); trust != nil && !trust.GetTrust() {
+	req, err := msg.Req.UnmarshalNew()
+	if err != nil {
+		return err
+	}
+
+	trust, ok := req.(*mjpb.MJTrustReq)
+	if ok && !trust.GetTrust() {
 		g.GetPlayer(seat).SetTrusted(false)
 		return nil
 	}
@@ -46,7 +53,7 @@ func (g *Game) OnReqMsg(seat int32, data []byte) error {
 	if g.CurState == nil {
 		return errors.New("invalid state")
 	}
-	return g.CurState.OnPlayerMsg(seat, msg)
+	return g.CurState.OnPlayerMsg(seat, req)
 }
 
 func (g *Game) GetMessager() *Messager {

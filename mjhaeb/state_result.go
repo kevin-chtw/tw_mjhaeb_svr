@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/kevin-chtw/tw_common/mahjong"
-	"github.com/kevin-chtw/tw_proto/haebpb"
+	"github.com/kevin-chtw/tw_proto/mjpb"
 	"github.com/topfreegames/pitaya/v3/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
@@ -22,8 +22,10 @@ func NewStateResult(game mahjong.IGame) *StateResult {
 }
 
 func (s *StateResult) onMsg(seat int32, msg proto.Message) error {
-	req := msg.(*haebpb.HAEBReq)
-	aniReq := req.GetHaebAnimationReq()
+	aniReq, ok := msg.(*mjpb.MJAnimationReq)
+	if !ok {
+		return nil
+	}
 	if aniReq != nil && seat == aniReq.Seat && s.game.IsRequestID(seat, aniReq.Requestid) {
 		s.game.OnGameOver()
 	}
