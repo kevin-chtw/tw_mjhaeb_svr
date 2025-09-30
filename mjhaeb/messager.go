@@ -83,6 +83,16 @@ func (m *Messager) sendDiscardAck() {
 	m.game.Send2Player(ack, game.SeatAll)
 }
 
+func (m *Messager) sendTingAck(seat int32, tile mahjong.Tile) {
+	tingAck := &haebpb.HAEBTingAck{
+		Seat:     seat,
+		Tile:     tile.ToInt32(),
+		TianTing: m.play.GetPlayData(seat).IsTianTing(),
+	}
+	ack := &haebpb.HAEBAck{HaebTingAck: tingAck}
+	m.game.Send2Player(ack, game.SeatAll)
+}
+
 func (m *Messager) sendChowAck(seat int32, leftTile mahjong.Tile) {
 	chowAck := &haebpb.HAEBChowAck{
 		Seat:     seat,

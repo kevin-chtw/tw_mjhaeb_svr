@@ -22,6 +22,7 @@ func NewStateDiscard(game mahjong.IGame, args ...any) mahjong.IState {
 		handlers: make(map[int32]func(tile mahjong.Tile)),
 	}
 	s.handlers[mahjong.OperateDiscard] = s.discard
+	s.handlers[mahjong.OperateTing] = s.ting
 	s.handlers[mahjong.OperateKon] = s.kon
 	s.handlers[mahjong.OperateHu] = s.hu
 	return s
@@ -53,6 +54,13 @@ func (s *StateDiscard) OnMsg(seat int32, msg proto.Message) error {
 		handler(mahjong.Tile(optReq.Tile))
 	}
 	return nil
+}
+
+func (s *StateDiscard) ting(tile mahjong.Tile) {
+	if s.GetPlay().Ting(tile) {
+		s.GetMessager().sendTingAck(s.GetPlay().GetCurSeat(), tile)
+		s.game.SetNextState(NewStateWait)
+	}
 }
 
 func (s *StateDiscard) discard(tile mahjong.Tile) {

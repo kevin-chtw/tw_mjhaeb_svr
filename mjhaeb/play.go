@@ -13,14 +13,17 @@ func NewPlay(game *Game) *Play {
 
 	p.ExtraHuTypes = p
 	p.PlayConf = &mahjong.PlayConf{}
-	p.RegisterSelfCheck(&mahjong.HuChecker{}, &mahjong.CallChecker{}, &mahjong.KonChecker{})
+	p.RegisterSelfCheck(&mahjong.CheckerHu{},
+		&mahjong.CheckerTing{},
+		&mahjong.CheckerKon{},
+	)
 	p.RegisterWaitCheck(
-		&mahjong.PaoChecker{},
-		&mahjong.ChowChecker{},
-		&mahjong.PonChecker{},
-		&mahjong.ZhiKonChecker{},
-		&mahjong.ChowTingChecker{},
-		&mahjong.PonTingChecker{},
+		&mahjong.CheckerPao{},
+		&mahjong.CheckerChow{},
+		&mahjong.CheckerPon{},
+		&mahjong.CheckerZhiKon{},
+		&mahjong.CheckerChowTing{},
+		&mahjong.CheckerPonTing{},
 	)
 	return p
 }
