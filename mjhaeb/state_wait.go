@@ -5,9 +5,8 @@ import (
 	"time"
 
 	"github.com/kevin-chtw/tw_common/mahjong"
-	"github.com/kevin-chtw/tw_proto/mjpb"
+	"github.com/kevin-chtw/tw_proto/game/pbmj"
 	"github.com/topfreegames/pitaya/v3/pkg/logger"
-
 	"google.golang.org/protobuf/proto"
 )
 
@@ -32,19 +31,19 @@ func NewStateWait(game mahjong.IGame, args ...any) mahjong.IState {
 }
 
 func (s *StateWait) OnEnter() {
-	discardSeat := s.GetPlay().GetCurSeat()
+	discardSeat := s.game.play.GetCurSeat()
 	for i := int32(0); i < s.game.GetPlayerCount(); i++ {
 		if i == discardSeat {
 			continue
 		}
 		trusted := s.game.GetPlayer(i).IsTrusted()
-		operates := s.GetPlay().FetchWaitOperates(i)
+		operates := s.game.play.FetchWaitOperates(i)
 		s.operatesForSeats[i] = operates
 
 		if operates.Value != mahjong.OperatePass && !trusted {
-			s.GetMessager().sendRequestAck(i, operates)
+			s.game.sender.SendRequestAck(i, operates)
 		} else {
-			s.setReqOperate(i, s.getDefaultOperate(i), s.GetPlay().GetCurTile())
+			s.setReqOperate(i, s.getDefaultOperate(i), s.game.play.GetCurTile())
 		}
 	}
 
@@ -55,7 +54,7 @@ func (s *StateWait) OnEnter() {
 }
 
 func (s *StateWait) OnMsg(seat int32, msg proto.Message) error {
-	optReq, ok := msg.(*mjpb.MJRequestReq)
+	optReq, ok := msg.(*pbmj.MJRequestReq)
 	if !ok {
 		return nil
 	}
@@ -74,11 +73,11 @@ func (s *StateWait) OnMsg(seat int32, msg proto.Message) error {
 func (s *StateWait) Timeout() {
 	logger.Log.Info("timeout", s.operatesForSeats)
 	for i := int32(0); i < s.game.GetPlayerCount(); i++ {
-		if i == s.GetPlay().GetCurSeat() {
+		if i == s.game.play.GetCurSeat() {
 			continue
 		}
 		if _, ok := s.reqOperateForSeats[i]; !ok {
-			s.setReqOperate(i, s.getDefaultOperate(i), s.GetPlay().GetCurTile())
+			s.setReqOperate(i, s.getDefaultOperate(i), s.game.play.GetCurTile())
 		}
 	}
 	s.tryHandleAction()
@@ -91,7 +90,7 @@ func (s *StateWait) setReqOperate(seat, operate int32, tile mahjong.Tile) {
 }
 
 func (s *StateWait) tryHandleAction() {
-	curSeat := s.GetPlay().GetCurSeat()
+	curSeat := s.game.play.GetCurSeat()
 	huSeats := make([]int32, 0)
 	for i := int32(1); i < s.game.GetPlayerCount(); i++ {
 		seat := mahjong.GetNextSeat(curSeat, i, s.game.GetPlayerCount())
@@ -109,7 +108,7 @@ func (s *StateWait) tryHandleAction() {
 		return
 	}
 
-	maxOper := &ReqOperate{Operate: mahjong.OperatePass, Tile: s.GetPlay().GetCurTile()}
+	maxOper := &ReqOperate{Operate: mahjong.OperatePass, Tile: s.game.play.GetCurTile()}
 	maxOperSeat := mahjong.SeatNull
 	isMaxReq := true
 	for i := int32(1); i < s.game.GetPlayerCount(); i++ {
@@ -121,7 +120,7 @@ func (s *StateWait) tryHandleAction() {
 				isMaxReq = true
 			}
 		} else if operate := s.getMaxOperate(seat); operate > maxOper.Operate {
-			maxOper = &ReqOperate{Operate: operate, Tile: s.GetPlay().GetCurTile()}
+			maxOper = &ReqOperate{Operate: operate, Tile: s.game.play.GetCurTile()}
 			maxOperSeat = seat
 			isMaxReq = false
 		}
@@ -133,20 +132,20 @@ func (s *StateWait) tryHandleAction() {
 
 func (s *StateWait) excuteOperate(seat int32, operate *ReqOperate) {
 	if operate.Operate == mahjong.OperateKon {
-		s.GetPlay().ZhiKon(seat)
-		s.GetMessager().sendKonAck(seat, s.GetPlay().GetCurTile(), mahjong.KonTypeZhi)
+		s.game.play.ZhiKon(seat)
+		s.game.sender.SendKonAck(seat, s.game.play.GetCurTile(), mahjong.KonTypeZhi)
 		s.toDrawState(seat)
 		return
 	}
 	if operate.Operate == mahjong.OperatePon {
-		s.GetPlay().Pon(seat)
-		s.GetMessager().sendPonAck(seat)
+		s.game.play.Pon(seat)
+		s.game.sender.SendPonAck(seat)
 		s.toDiscardState(seat)
 		return
 	}
 	if operate.Operate == mahjong.OperateChow {
-		s.GetPlay().Chow(seat, operate.Tile)
-		s.GetMessager().sendChowAck(seat, operate.Tile)
+		s.game.play.Chow(seat, operate.Tile)
+		s.game.sender.SendChowAck(seat, operate.Tile)
 		s.toDiscardState(seat)
 		return
 	}
@@ -158,12 +157,12 @@ func (s *StateWait) excuteHu(huSeats []int32) {
 }
 
 func (s *StateWait) toDrawState(seat int32) {
-	s.GetPlay().DoSwitchSeat(seat)
+	s.game.play.DoSwitchSeat(seat)
 	s.game.SetNextState(NewStateDraw)
 }
 
 func (s *StateWait) toDiscardState(seat int32) {
-	s.GetPlay().DoSwitchSeat(seat)
+	s.game.play.DoSwitchSeat(seat)
 	s.game.SetNextState(NewStateDiscard)
 }
 

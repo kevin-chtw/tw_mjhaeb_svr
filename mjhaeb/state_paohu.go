@@ -5,23 +5,24 @@ import (
 )
 
 type StatePaohu struct {
-	*StateResult
+	*State
+	huSeats []int32
 }
 
 func NewStatePaohu(game mahjong.IGame, args ...any) mahjong.IState {
 	s := &StatePaohu{
-		StateResult: NewStateResult(game),
+		State: NewState(game),
 	}
 	s.huSeats = args[0].([]int32)
 	return s
 }
 
 func (s *StatePaohu) OnEnter() {
-	s.game.GetMessager().sendHuAck(s.huSeats, s.GetPlay().GetCurSeat())
-	multiples := s.GetPlay().PaoHu(s.huSeats)
-	s.game.GetScorelator().AddMultiple(mahjong.ScoreReasonHu, multiples)
-	s.game.GetScorelator().Calculate()
+	s.game.sender.SendHuAck(s.huSeats, s.game.play.GetCurSeat())
+	multiples := s.game.play.PaoHu(s.huSeats)
+	s.game.scorelator.AddMultiple(mahjong.ScoreReasonHu, multiples)
+	s.game.scorelator.Calculate()
 
-	s.game.GetMessager().sendResult(false)
-	s.handleOver()
+	s.game.sender.SendResult(false)
+	s.WaitAni(s.game.OnGameOver)
 }

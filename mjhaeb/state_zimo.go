@@ -5,22 +5,21 @@ import (
 )
 
 type StateZimo struct {
-	*StateResult
+	*State
 }
 
 func NewStateZimo(game mahjong.IGame, args ...any) mahjong.IState {
 	return &StateZimo{
-		StateResult: NewStateResult(game),
+		State: NewState(game),
 	}
 }
 
 func (s *StateZimo) OnEnter() {
-	s.huSeats = append(s.huSeats, s.GetPlay().GetCurSeat())
-	s.game.GetMessager().sendHuAck(s.huSeats, mahjong.SeatNull)
+	s.game.sender.SendHuAck([]int32{s.game.play.GetCurSeat()}, mahjong.SeatNull)
+	multiples := s.game.play.Zimo()
+	s.game.scorelator.AddMultiple(mahjong.ScoreReasonHu, multiples)
+	s.game.scorelator.Calculate()
+	s.game.sender.SendResult(false)
 
-	multiples := s.GetPlay().Zimo()
-	s.game.GetScorelator().AddMultiple(mahjong.ScoreReasonHu, multiples)
-	s.game.GetScorelator().Calculate()
-	s.game.GetMessager().sendResult(false)
-	s.handleOver()
+	s.WaitAni(s.game.OnGameOver)
 }

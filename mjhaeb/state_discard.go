@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/kevin-chtw/tw_common/mahjong"
-	"github.com/kevin-chtw/tw_proto/mjpb"
+	"github.com/kevin-chtw/tw_proto/game/pbmj"
 	"github.com/topfreegames/pitaya/v3/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
@@ -29,19 +29,19 @@ func NewStateDiscard(game mahjong.IGame, args ...any) mahjong.IState {
 }
 
 func (s *StateDiscard) OnEnter() {
-	s.operates = s.GetPlay().FetchSelfOperates()
-	s.GetMessager().sendRequestAck(s.GetPlay().GetCurSeat(), s.operates)
+	s.operates = s.game.play.FetchSelfOperates()
+	s.game.sender.SendRequestAck(s.game.play.GetCurSeat(), s.operates)
 	discardTime := s.game.GetRule().GetValue(RuleDiscardTime) + 1
 	logger.Log.Infof("discard time: %d", discardTime)
 	s.AsyncMsgTimer(s.OnMsg, time.Duration(discardTime)*time.Second, s.OnTimeout)
 }
 
 func (s *StateDiscard) OnMsg(seat int32, msg proto.Message) error {
-	if seat != s.GetPlay().GetCurSeat() {
+	if seat != s.game.play.GetCurSeat() {
 		return errors.New("not current seat")
 	}
 
-	optReq, ok := msg.(*mjpb.MJRequestReq)
+	optReq, ok := msg.(*pbmj.MJRequestReq)
 	if !ok {
 		return nil
 	}
@@ -59,25 +59,26 @@ func (s *StateDiscard) OnMsg(seat int32, msg proto.Message) error {
 }
 
 func (s *StateDiscard) ting(tile mahjong.Tile) {
-	if s.GetPlay().Ting(tile) {
-		s.GetMessager().sendTingAck(s.GetPlay().GetCurSeat(), tile)
+	if s.game.play.Ting(tile) {
+		s.game.sender.SendTingAck(s.game.play.GetCurSeat(), tile)
+		s.game.sender.sendBaoAck()
 		s.game.SetNextState(NewStateWait)
 	}
 }
 
 func (s *StateDiscard) discard(tile mahjong.Tile) {
-	if s.GetPlay().Discard(tile) {
-		s.GetMessager().sendDiscardAck()
+	if s.game.play.Discard(tile) {
+		s.game.sender.SendDiscardAck()
 		s.game.SetNextState(NewStateWait)
 	}
 }
 
 func (s *StateDiscard) kon(tile mahjong.Tile) {
-	if s.GetPlay().TryKon(tile, mahjong.KonTypeBu) {
-		s.GetMessager().sendKonAck(s.GetPlay().GetCurSeat(), tile, mahjong.KonTypeBu)
+	if s.game.play.TryKon(tile, mahjong.KonTypeBu) {
+		s.game.sender.SendKonAck(s.game.play.GetCurSeat(), tile, mahjong.KonTypeBu)
 		s.game.SetNextState(NewStateWait)
-	} else if s.GetPlay().TryKon(tile, mahjong.KonTypeAn) {
-		s.GetMessager().sendKonAck(s.GetPlay().GetCurSeat(), tile, mahjong.KonTypeAn)
+	} else if s.game.play.TryKon(tile, mahjong.KonTypeAn) {
+		s.game.sender.SendKonAck(s.game.play.GetCurSeat(), tile, mahjong.KonTypeAn)
 		s.game.SetNextState(NewStateDraw)
 	}
 }

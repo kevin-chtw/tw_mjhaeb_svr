@@ -4,12 +4,18 @@ import "github.com/kevin-chtw/tw_common/mahjong"
 
 type Play struct {
 	*mahjong.Play
+	game   *Game
+	dealer *mahjong.Dealer
+	bao    mahjong.Tile
 }
 
 func NewPlay(game *Game) *Play {
 	p := &Play{
-		Play: mahjong.NewPlay(game.Game),
+		game:   game,
+		dealer: mahjong.NewDealer(game.Game),
+		bao:    mahjong.TileNull,
 	}
+	p.Play = mahjong.NewPlay(game.Game, p.dealer)
 
 	p.ExtraHuTypes = p
 	p.PlayConf = &mahjong.PlayConf{}
@@ -29,9 +35,15 @@ func NewPlay(game *Game) *Play {
 }
 
 func (p *Play) SelfExtraFans() []int32 {
-	return []int32{}
+	hyTypes := make([]int32, 0)
+	hyTypes = append(hyTypes, HuTypeZiMo)
+	return hyTypes
 }
 
 func (p *Play) PaoExtraFans() []int32 {
 	return []int32{}
+}
+
+func (p *Play) InitBaoTile() {
+	p.bao = p.dealer.LastTile()
 }

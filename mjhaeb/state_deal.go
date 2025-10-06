@@ -1,18 +1,12 @@
 package mjhaeb
 
 import (
-	"time"
-
 	"github.com/kevin-chtw/tw_common/mahjong"
-	"github.com/kevin-chtw/tw_proto/mjpb"
-	"google.golang.org/protobuf/proto"
 )
 
 type StateDeal struct {
 	*State
 }
-
-var Deal = StateDeal{}
 
 func NewStateDeal(game mahjong.IGame, args ...any) mahjong.IState {
 	return &StateDeal{
@@ -21,20 +15,8 @@ func NewStateDeal(game mahjong.IGame, args ...any) mahjong.IState {
 }
 
 func (s *StateDeal) OnEnter() {
-	s.GetPlay().Deal()
-
-	s.GetMessager().sendOpenDoorAck()
-	s.GetMessager().sendAnimationAck()
-	s.AsyncMsgTimer(s.OnMsg, time.Second*5, func() { s.game.SetNextState(NewStateDiscard) })
-}
-
-func (s *StateDeal) OnMsg(seat int32, msg proto.Message) error {
-	aniReq, ok := msg.(*mjpb.MJAnimationReq)
-	if !ok {
-		return nil
-	}
-	if aniReq != nil && seat == aniReq.Seat && s.game.IsRequestID(seat, aniReq.Requestid) {
-		s.game.SetNextState(NewStateDiscard)
-	}
-	return nil
+	s.game.play.Deal()
+	s.game.play.InitBaoTile()
+	s.game.sender.SendOpenDoorAck()
+	s.WaitAni(func() { s.game.SetNextState(NewStateDiscard) })
 }

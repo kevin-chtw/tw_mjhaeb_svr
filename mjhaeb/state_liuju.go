@@ -5,16 +5,16 @@ import (
 )
 
 type StateLiuju struct {
-	*StateResult
+	*State
 }
 
 func NewStateLiuju(game mahjong.IGame, args ...any) mahjong.IState {
 	return &StateLiuju{
-		StateResult: NewStateResult(game),
+		State: NewState(game),
 	}
 }
 
 func (s *StateLiuju) OnEnter() {
-	s.game.GetMessager().sendResult(true)
-	s.handleOver()
+	s.game.sender.SendResult(true)
+	s.WaitAni(s.game.OnGameOver)
 }

@@ -53,10 +53,14 @@ func (s *service) CheckHu(data *mahjong.HuData, rule *mahjong.Rule) (*mahjong.Hu
 	if !s.huCore.CheckBasicHu(data.Tiles, data.LaiCount) {
 		return nil, false
 	}
-	result := &mahjong.HuResult{
-		HuTypes: make([]int32, len(data.ExtraHuTypes)),
+	extraHuTypes := make([]int32, 0)
+	if data.ExtraHuTypes != nil {
+		extraHuTypes = slices.Clone(data.ExtraHuTypes)
 	}
-	copy(result.HuTypes, data.ExtraHuTypes)
+	result := &mahjong.HuResult{
+		HuTypes:   extraHuTypes,
+		TotalMuti: totalMuti(extraHuTypes),
+	}
 	return result, true
 }
 
@@ -73,14 +77,14 @@ func (s *service) CheckCall(data *mahjong.HuData, rule *mahjong.Rule) map[mahjon
 		tempData := *data
 		for tile := range tileSet {
 			tempData.Tiles = mahjong.RemoveElements(data.Tiles, tile, 1)
-			fans := s.checkCallFan(&tempData, rule)
+			fans := s.checkCalls(&tempData, rule)
 			if len(fans) > 0 {
 				callData[tile] = fans
 			}
 		}
 	case 1:
 		// 直接检查叫牌
-		fans := s.checkCallFan(data, rule)
+		fans := s.checkCalls(data, rule)
 		if len(fans) > 0 {
 			callData[0] = fans
 		}
@@ -89,16 +93,16 @@ func (s *service) CheckCall(data *mahjong.HuData, rule *mahjong.Rule) map[mahjon
 	return callData
 }
 
-func (s *service) checkCallFan(data *mahjong.HuData, rule *mahjong.Rule) map[mahjong.Tile]int64 {
-	fans := make(map[mahjong.Tile]int64)
+func (s *service) checkCalls(data *mahjong.HuData, rule *mahjong.Rule) map[mahjong.Tile]int64 {
+	mutils := make(map[mahjong.Tile]int64)
 	testTiles := s.GetAllTiles(rule)
 	originalTiles := slices.Clone(data.Tiles)
 	for tile := range testTiles {
 		data.Tiles = append(data.Tiles, tile)
 		if result, ok := s.CheckHu(data, rule); ok {
-			fans[tile] = result.TotalMuti
+			mutils[tile] = result.TotalMuti
 		}
 		data.Tiles = originalTiles
 	}
-	return fans
+	return mutils
 }
