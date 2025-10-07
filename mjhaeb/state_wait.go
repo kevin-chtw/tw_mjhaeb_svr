@@ -12,7 +12,8 @@ import (
 
 type ReqOperate struct {
 	Operate int32        //操作
-	Tile    mahjong.Tile //牌
+	tile    mahjong.Tile //吃牌吃最左的牌
+	disTile mahjong.Tile //吃听、碰听时出的牌
 }
 
 type StateWait struct {
@@ -43,7 +44,7 @@ func (s *StateWait) OnEnter() {
 		if operates.Value != mahjong.OperatePass && !trusted {
 			s.game.sender.SendRequestAck(i, operates)
 		} else {
-			s.setReqOperate(i, s.getDefaultOperate(i), s.game.play.GetCurTile())
+			s.setReqOperate(i, s.getDefaultOperate(i), s.game.play.GetCurTile(), mahjong.TileNull)
 		}
 	}
 
@@ -65,7 +66,7 @@ func (s *StateWait) OnMsg(seat int32, msg proto.Message) error {
 	if !s.isValidOperate(seat, int(optReq.RequestType)) {
 		return errors.New("invalid operate")
 	}
-	s.setReqOperate(seat, optReq.RequestType, mahjong.Tile(optReq.Tile))
+	s.setReqOperate(seat, optReq.RequestType, mahjong.Tile(optReq.Tile), mahjong.Tile(optReq.DisTile))
 	s.tryHandleAction()
 	return nil
 }
@@ -77,15 +78,15 @@ func (s *StateWait) Timeout() {
 			continue
 		}
 		if _, ok := s.reqOperateForSeats[i]; !ok {
-			s.setReqOperate(i, s.getDefaultOperate(i), s.game.play.GetCurTile())
+			s.setReqOperate(i, s.getDefaultOperate(i), s.game.play.GetCurTile(), mahjong.TileNull)
 		}
 	}
 	s.tryHandleAction()
 }
 
-func (s *StateWait) setReqOperate(seat, operate int32, tile mahjong.Tile) {
+func (s *StateWait) setReqOperate(seat, operate int32, tile, disTile mahjong.Tile) {
 	if s.game.IsValidSeat(seat) {
-		s.reqOperateForSeats[seat] = &ReqOperate{Operate: operate, Tile: tile}
+		s.reqOperateForSeats[seat] = &ReqOperate{Operate: operate, tile: tile, disTile: disTile}
 	}
 }
 
@@ -108,7 +109,7 @@ func (s *StateWait) tryHandleAction() {
 		return
 	}
 
-	maxOper := &ReqOperate{Operate: mahjong.OperatePass, Tile: s.game.play.GetCurTile()}
+	maxOper := &ReqOperate{Operate: mahjong.OperatePass, tile: s.game.play.GetCurTile()}
 	maxOperSeat := mahjong.SeatNull
 	isMaxReq := true
 	for i := int32(1); i < s.game.GetPlayerCount(); i++ {
@@ -120,7 +121,7 @@ func (s *StateWait) tryHandleAction() {
 				isMaxReq = true
 			}
 		} else if operate := s.getMaxOperate(seat); operate > maxOper.Operate {
-			maxOper = &ReqOperate{Operate: operate, Tile: s.game.play.GetCurTile()}
+			maxOper = &ReqOperate{Operate: operate, tile: s.game.play.GetCurTile()}
 			maxOperSeat = seat
 			isMaxReq = false
 		}
@@ -131,6 +132,23 @@ func (s *StateWait) tryHandleAction() {
 }
 
 func (s *StateWait) excuteOperate(seat int32, operate *ReqOperate) {
+	if operate.Operate == mahjong.OperatePonTing {
+		ponTile := s.game.play.GetCurTile()
+		s.game.play.PonTing(seat, operate.disTile)
+		s.game.sender.SendPonAck(seat, ponTile)
+		s.game.sender.SendTingAck(seat, operate.disTile)
+		s.toWaitState(seat)
+		return
+	}
+
+	if operate.Operate == mahjong.OperateChowTing {
+		chowTile := s.game.play.GetCurTile()
+		s.game.play.ChowTing(seat, operate.tile, operate.disTile)
+		s.game.sender.SendChowAck(seat, chowTile, operate.tile)
+		s.game.sender.SendTingAck(seat, operate.disTile)
+		s.toWaitState(seat)
+		return
+	}
 	if operate.Operate == mahjong.OperateKon {
 		s.game.play.ZhiKon(seat)
 		s.game.sender.SendKonAck(seat, s.game.play.GetCurTile(), mahjong.KonTypeZhi)
@@ -139,13 +157,13 @@ func (s *StateWait) excuteOperate(seat int32, operate *ReqOperate) {
 	}
 	if operate.Operate == mahjong.OperatePon {
 		s.game.play.Pon(seat)
-		s.game.sender.SendPonAck(seat)
+		s.game.sender.SendPonAck(seat, s.game.play.GetCurTile())
 		s.toDiscardState(seat)
 		return
 	}
 	if operate.Operate == mahjong.OperateChow {
-		s.game.play.Chow(seat, operate.Tile)
-		s.game.sender.SendChowAck(seat, operate.Tile)
+		s.game.play.Chow(seat, operate.tile)
+		s.game.sender.SendChowAck(seat, s.game.play.GetCurTile(), operate.tile)
 		s.toDiscardState(seat)
 		return
 	}
@@ -154,6 +172,11 @@ func (s *StateWait) excuteOperate(seat int32, operate *ReqOperate) {
 
 func (s *StateWait) excuteHu(huSeats []int32) {
 	s.game.SetNextState(NewStatePaohu, huSeats)
+}
+
+func (s *StateWait) toWaitState(seat int32) {
+	s.game.play.DoSwitchSeat(seat)
+	s.game.SetNextState(NewStateWait)
 }
 
 func (s *StateWait) toDrawState(seat int32) {
@@ -181,6 +204,12 @@ func (s *StateWait) getMaxOperate(seat int32) int32 {
 	if ops := s.operatesForSeats[seat]; ops != nil {
 		if ops.HasOperate(mahjong.OperateHu) {
 			return mahjong.OperateHu
+		}
+		if ops.HasOperate(mahjong.OperatePonTing) {
+			return mahjong.OperatePonTing
+		}
+		if ops.HasOperate(mahjong.OperateChowTing) {
+			return mahjong.OperateChowTing
 		}
 		if ops.HasOperate(mahjong.OperateKon) {
 			return mahjong.OperateKon

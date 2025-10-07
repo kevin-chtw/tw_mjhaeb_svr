@@ -16,7 +16,7 @@ func NewStateDeal(game mahjong.IGame, args ...any) mahjong.IState {
 
 func (s *StateDeal) OnEnter() {
 	s.game.play.Deal()
-	s.game.play.InitBaoTile()
+	s.game.play.initBaoTile()
 	s.game.sender.SendOpenDoorAck()
 	s.WaitAni(func() { s.game.SetNextState(NewStateDiscard) })
 }
