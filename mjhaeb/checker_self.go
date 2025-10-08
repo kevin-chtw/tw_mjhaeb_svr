@@ -44,9 +44,17 @@ func (c *CheckerTing) Check(opt *mahjong.Operates, tips []int) []int {
 	}
 
 	playData := c.play.GetPlayData(c.play.GetCurSeat())
+	if playData.IsTing() {
+		return tips
+	}
 	huData := mahjong.NewHuData(playData, true)
 	callData := huData.CheckCall()
 	if len(callData) <= 0 {
+		return tips
+	}
+
+	if playData.IsMenQin() {
+		tips = append(tips, mahjong.TipsMenQin)
 		return tips
 	}
 

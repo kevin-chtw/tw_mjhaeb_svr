@@ -18,6 +18,18 @@ func (s *StateDraw) OnEnter() {
 		s.game.SetNextState(NewStateLiuju)
 		return
 	}
+	if s.game.play.swapBaoTile() {
+		if s.game.play.bao == mahjong.TileNull {
+			s.game.SetNextState(NewStateLiuju)
+			return
+		}
+		for i := range s.game.GetPlayerCount() {
+			if s.game.play.GetPlayData(i).IsTing() {
+				s.game.sender.sendBaoAck()
+			}
+		}
+	}
 	s.game.sender.SendDrawAck(tile)
 	s.game.SetNextState(NewStateDiscard)
+
 }

@@ -59,6 +59,14 @@ func (p *Play) initBaoTile() {
 	p.bao = p.dealer.LastTile()
 }
 
+func (p *Play) swapBaoTile() bool {
+	if p.dealer.Count(p.bao) <= 1 {
+		p.bao = p.dealer.SwapLastTile()
+		return true
+	}
+	return false
+}
+
 func (p *Play) isBaoTile(tile mahjong.Tile) bool {
 	if p.bao == tile {
 		return true
@@ -70,7 +78,7 @@ func (p *Play) isBaoTile(tile mahjong.Tile) bool {
 }
 
 func (p *Play) selfHuTypes() []int32 {
-	types := p.huTypes(p.GetCurSeat(), 4)
+	types := p.huTypes(p.GetCurSeat(), 4, true)
 	if len(types) != 0 {
 		types = append(types, HuTypeZiMo)
 	}
@@ -78,10 +86,10 @@ func (p *Play) selfHuTypes() []int32 {
 }
 
 func (p *Play) paoHuTypes(seat int32) []int32 {
-	return p.huTypes(seat, 3)
+	return p.huTypes(seat, 3, false)
 }
 
-func (p *Play) huTypes(seat int32, guaDaFengNum int) (types []int32) {
+func (p *Play) huTypes(seat int32, guaDaFengNum int, self bool) (types []int32) {
 	types = make([]int32, 0)
 	playData := p.GetPlayData(seat)
 	callData := playData.GetCallData()
@@ -97,7 +105,7 @@ func (p *Play) huTypes(seat int32, guaDaFengNum int) (types []int32) {
 	if _, ok := callData[p.GetCurTile()]; !ok {
 		return
 	}
-	if len(callData) == 1 {
+	if len(callData) == 1 && isKaDang(mahjong.NewHuData(playData, self)) {
 		types = append(types, HuTypeKaDang)
 	} else {
 		types = append(types, HuTypePingHu)
