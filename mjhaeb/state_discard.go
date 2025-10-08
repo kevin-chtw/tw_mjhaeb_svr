@@ -92,9 +92,9 @@ func (s *StateDiscard) hu(tile mahjong.Tile) {
 }
 
 func (s *StateDiscard) OnTimeout() {
-	// if s.game.MatchType == "fdtable" {
-	// 	return
-	// }
+	if s.game.MatchType == "fdtable" {
+		return
+	}
 	s.discard(mahjong.TileNull)
-	s.game.GetPlayer(s.game.play.GetCurSeat()).SetTrusted(true)
+	s.game.sender.SendTrustAck(s.game.play.GetCurSeat(), true)
 }

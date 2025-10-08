@@ -46,7 +46,7 @@ func (g *Game) OnReqMsg(seat int32, data []byte) error {
 
 	trust, ok := req.(*pbmj.MJTrustReq)
 	if ok && !trust.GetTrust() {
-		g.GetPlayer(seat).SetTrusted(false)
+		g.sender.SendTrustAck(seat, trust.GetTrust())
 		return nil
 	}
 

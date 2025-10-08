@@ -86,9 +86,9 @@ func (s *StateWait) OnMsg(seat int32, msg proto.Message) error {
 }
 
 func (s *StateWait) Timeout() {
-	// if s.game.MatchType == "fdtable" {
-	// 	return
-	// }
+	if s.game.MatchType == "fdtable" {
+		return
+	}
 	for i := int32(0); i < s.game.GetPlayerCount(); i++ {
 		if i == s.game.play.GetCurSeat() {
 			continue
