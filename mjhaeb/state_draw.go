@@ -13,11 +13,6 @@ func NewStateDraw(game mahjong.IGame, args ...any) mahjong.IState {
 }
 
 func (s *StateDraw) OnEnter() {
-	tile := s.game.play.Draw()
-	if tile == mahjong.TileNull {
-		s.game.SetNextState(NewStateLiuju)
-		return
-	}
 	if s.game.play.swapBaoTile() {
 		if s.game.play.bao == mahjong.TileNull {
 			s.game.SetNextState(NewStateLiuju)
@@ -28,6 +23,12 @@ func (s *StateDraw) OnEnter() {
 				s.game.sender.sendBaoAck()
 			}
 		}
+	}
+
+	tile := s.game.play.Draw()
+	if tile == mahjong.TileNull {
+		s.game.SetNextState(NewStateLiuju)
+		return
 	}
 	s.game.sender.SendDrawAck(tile)
 	s.game.SetNextState(NewStateDiscard)
