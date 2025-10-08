@@ -6,9 +6,17 @@ import (
 
 	"github.com/kevin-chtw/tw_common/mahjong"
 	"github.com/kevin-chtw/tw_proto/game/pbmj"
-	"github.com/topfreegames/pitaya/v3/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
+
+var priority = []int32{
+	mahjong.OperateHu,
+	mahjong.OperatePonTing,
+	mahjong.OperateChowTing,
+	mahjong.OperateKon,
+	mahjong.OperatePon,
+	mahjong.OperateChow,
+}
 
 type ReqOperate struct {
 	Operate int32        //操作
@@ -20,14 +28,22 @@ type StateWait struct {
 	*State
 	operatesForSeats   []*mahjong.Operates   // 每个座位可执行的操作
 	reqOperateForSeats map[int32]*ReqOperate // 每个座位已请求的操作
+	handlers           map[int32]func(int32, *ReqOperate)
 }
 
 func NewStateWait(game mahjong.IGame, args ...any) mahjong.IState {
 	s := &StateWait{
-		State: NewState(game),
+		State:    NewState(game),
+		handlers: make(map[int32]func(int32, *ReqOperate)),
 	}
 	s.operatesForSeats = make([]*mahjong.Operates, s.game.GetPlayerCount())
 	s.reqOperateForSeats = make(map[int32]*ReqOperate)
+
+	s.handlers[mahjong.OperatePonTing] = s.ponTing
+	s.handlers[mahjong.OperateChowTing] = s.chowTing
+	s.handlers[mahjong.OperateKon] = s.kon
+	s.handlers[mahjong.OperatePon] = s.pon
+	s.handlers[mahjong.OperateChow] = s.chow
 	return s
 }
 
@@ -37,11 +53,10 @@ func (s *StateWait) OnEnter() {
 		if i == discardSeat {
 			continue
 		}
-		trusted := s.game.GetPlayer(i).IsTrusted()
 		operates := s.game.play.FetchWaitOperates(i)
 		s.operatesForSeats[i] = operates
 
-		if operates.Value != mahjong.OperatePass && !trusted {
+		if operates.Value != mahjong.OperatePass && !s.game.GetPlayer(i).IsTrusted() {
 			s.game.sender.SendRequestAck(i, operates)
 		} else {
 			s.setReqOperate(i, s.getDefaultOperate(i), s.game.play.GetCurTile(), mahjong.TileNull)
@@ -49,7 +64,6 @@ func (s *StateWait) OnEnter() {
 	}
 
 	timeout := s.game.GetRule().GetValue(RuleWaitTime) + 1
-	logger.Log.Infof("discardSeat:%d timeout:%d", discardSeat, timeout)
 	s.AsyncMsgTimer(s.OnMsg, time.Second*time.Duration(timeout), s.Timeout)
 	s.tryHandleAction()
 }
@@ -72,7 +86,9 @@ func (s *StateWait) OnMsg(seat int32, msg proto.Message) error {
 }
 
 func (s *StateWait) Timeout() {
-	logger.Log.Info("timeout", s.operatesForSeats)
+	// if s.game.MatchType == "fdtable" {
+	// 	return
+	// }
 	for i := int32(0); i < s.game.GetPlayerCount(); i++ {
 		if i == s.game.play.GetCurSeat() {
 			continue
@@ -98,6 +114,7 @@ func (s *StateWait) tryHandleAction() {
 		if operate, ok := s.reqOperateForSeats[seat]; ok {
 			if operate.Operate == mahjong.OperateHu {
 				huSeats = append(huSeats, seat)
+				break
 			}
 		} else if s.getMaxOperate(seat) == mahjong.OperateHu {
 			return
@@ -132,42 +149,45 @@ func (s *StateWait) tryHandleAction() {
 }
 
 func (s *StateWait) excuteOperate(seat int32, operate *ReqOperate) {
-	if operate.Operate == mahjong.OperatePonTing {
-		ponTile := s.game.play.GetCurTile()
-		s.game.play.PonTing(seat, operate.disTile)
-		s.game.sender.SendPonAck(seat, ponTile)
-		s.game.sender.SendTingAck(seat, operate.disTile)
-		s.toWaitState(seat)
-		return
+	if handler, exists := s.handlers[operate.Operate]; exists {
+		handler(seat, operate)
+	} else {
+		s.toDrawState(mahjong.SeatNull)
 	}
+}
 
-	if operate.Operate == mahjong.OperateChowTing {
-		chowTile := s.game.play.GetCurTile()
-		s.game.play.ChowTing(seat, operate.tile, operate.disTile)
-		s.game.sender.SendChowAck(seat, chowTile, operate.tile)
-		s.game.sender.SendTingAck(seat, operate.disTile)
-		s.toWaitState(seat)
-		return
-	}
-	if operate.Operate == mahjong.OperateKon {
-		s.game.play.ZhiKon(seat)
-		s.game.sender.SendKonAck(seat, s.game.play.GetCurTile(), mahjong.KonTypeZhi)
-		s.toDrawState(seat)
-		return
-	}
-	if operate.Operate == mahjong.OperatePon {
-		s.game.play.Pon(seat)
-		s.game.sender.SendPonAck(seat, s.game.play.GetCurTile())
-		s.toDiscardState(seat)
-		return
-	}
-	if operate.Operate == mahjong.OperateChow {
-		s.game.play.Chow(seat, operate.tile)
-		s.game.sender.SendChowAck(seat, s.game.play.GetCurTile(), operate.tile)
-		s.toDiscardState(seat)
-		return
-	}
-	s.toDrawState(mahjong.SeatNull)
+func (s *StateWait) ponTing(seat int32, operate *ReqOperate) {
+	ponTile := s.game.play.GetCurTile()
+	s.game.play.PonTing(seat, operate.disTile)
+	s.game.sender.SendPonAck(seat, ponTile)
+	s.game.sender.SendTingAck(seat, operate.disTile)
+	s.toWaitState(seat)
+}
+
+func (s *StateWait) chowTing(seat int32, operate *ReqOperate) {
+	chowTile := s.game.play.GetCurTile()
+	s.game.play.ChowTing(seat, operate.tile, operate.disTile)
+	s.game.sender.SendChowAck(seat, chowTile, operate.tile)
+	s.game.sender.SendTingAck(seat, operate.disTile)
+	s.toWaitState(seat)
+}
+
+func (s *StateWait) kon(seat int32, operate *ReqOperate) {
+	s.game.play.ZhiKon(seat)
+	s.game.sender.SendKonAck(seat, s.game.play.GetCurTile(), mahjong.KonTypeZhi)
+	s.toDrawState(seat)
+}
+
+func (s *StateWait) pon(seat int32, operate *ReqOperate) {
+	s.game.play.Pon(seat)
+	s.game.sender.SendPonAck(seat, s.game.play.GetCurTile())
+	s.toDiscardState(seat)
+}
+
+func (s *StateWait) chow(seat int32, operate *ReqOperate) {
+	s.game.play.Chow(seat, operate.tile)
+	s.game.sender.SendChowAck(seat, s.game.play.GetCurTile(), operate.tile)
+	s.toDiscardState(seat)
 }
 
 func (s *StateWait) excuteHu(huSeats []int32) {
@@ -202,23 +222,10 @@ func (s *StateWait) isValidOperate(seat int32, operate int) bool {
 
 func (s *StateWait) getMaxOperate(seat int32) int32 {
 	if ops := s.operatesForSeats[seat]; ops != nil {
-		if ops.HasOperate(mahjong.OperateHu) {
-			return mahjong.OperateHu
-		}
-		if ops.HasOperate(mahjong.OperatePonTing) {
-			return mahjong.OperatePonTing
-		}
-		if ops.HasOperate(mahjong.OperateChowTing) {
-			return mahjong.OperateChowTing
-		}
-		if ops.HasOperate(mahjong.OperateKon) {
-			return mahjong.OperateKon
-		}
-		if ops.HasOperate(mahjong.OperatePon) {
-			return mahjong.OperatePon
-		}
-		if ops.HasOperate(mahjong.OperateChow) {
-			return mahjong.OperateChow
+		for _, operate := range priority {
+			if ops.HasOperate(operate) {
+				return operate
+			}
 		}
 	}
 	return mahjong.OperatePass

@@ -31,5 +31,4 @@ func (s *StateDraw) OnEnter() {
 	}
 	s.game.sender.SendDrawAck(tile)
 	s.game.SetNextState(NewStateDiscard)
-
 }

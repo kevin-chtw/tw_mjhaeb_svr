@@ -6,7 +6,6 @@ import (
 
 	"github.com/kevin-chtw/tw_common/mahjong"
 	"github.com/kevin-chtw/tw_proto/game/pbmj"
-	"github.com/topfreegames/pitaya/v3/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -32,8 +31,13 @@ func (s *StateDiscard) OnEnter() {
 	s.operates = s.game.play.FetchSelfOperates()
 	s.game.sender.SendRequestAck(s.game.play.GetCurSeat(), s.operates)
 	discardTime := s.game.GetRule().GetValue(RuleDiscardTime) + 1
-	logger.Log.Infof("discard time: %d", discardTime)
+
+	if s.game.GetPlayer(s.game.play.GetCurSeat()).IsTrusted() {
+		s.discard(mahjong.TileNull)
+		return
+	}
 	s.AsyncMsgTimer(s.OnMsg, time.Duration(discardTime)*time.Second, s.OnTimeout)
+
 }
 
 func (s *StateDiscard) OnMsg(seat int32, msg proto.Message) error {
@@ -88,6 +92,9 @@ func (s *StateDiscard) hu(tile mahjong.Tile) {
 }
 
 func (s *StateDiscard) OnTimeout() {
-	logger.Log.Infof("discard timeout")
+	// if s.game.MatchType == "fdtable" {
+	// 	return
+	// }
 	s.discard(mahjong.TileNull)
+	s.game.GetPlayer(s.game.play.GetCurSeat()).SetTrusted(true)
 }
