@@ -71,7 +71,7 @@ func (p *Play) isBaoTile(tile mahjong.Tile) bool {
 	if p.bao == tile {
 		return true
 	}
-	if p.GetRule().GetValue(RuleHongZhongMTF) != 0 {
+	if p.GetRule().GetValue(RuleHZMTF) != 0 {
 		return tile == mahjong.TileZhong
 	}
 	return false
