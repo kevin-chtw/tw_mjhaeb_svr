@@ -5,10 +5,10 @@ import (
 
 	"github.com/kevin-chtw/tw_common/game"
 	"github.com/kevin-chtw/tw_common/mahjong"
+	"github.com/kevin-chtw/tw_common/utils"
 	"github.com/kevin-chtw/tw_proto/game/pbhaeb"
 	"github.com/kevin-chtw/tw_proto/game/pbmj"
 	"github.com/topfreegames/pitaya/v3/pkg/logger"
-	"google.golang.org/protobuf/proto"
 )
 
 type Game struct {
@@ -32,9 +32,9 @@ func (g *Game) OnStart() {
 	g.Game.SetNextState(NewStateInit)
 }
 
-func (g *Game) OnReqMsg(seat int32, data []byte) error {
+func (g *Game) OnReqMsg(player *game.Player, data []byte) error {
 	msg := &pbhaeb.HAEBReq{}
-	if err := proto.Unmarshal(data, msg); err != nil {
+	if err := utils.Unmarshal(player.Ctx, data, msg); err != nil {
 		return err
 	}
 	logger.Log.Info(msg)
@@ -46,12 +46,12 @@ func (g *Game) OnReqMsg(seat int32, data []byte) error {
 
 	trust, ok := req.(*pbmj.MJTrustReq)
 	if ok && !trust.GetTrust() {
-		g.sender.SendTrustAck(seat, trust.GetTrust())
+		g.sender.SendTrustAck(player.GetSeat(), trust.GetTrust())
 		return nil
 	}
 
 	if g.CurState == nil {
 		return errors.New("invalid state")
 	}
-	return g.CurState.OnPlayerMsg(seat, req)
+	return g.CurState.OnPlayerMsg(player.GetSeat(), req)
 }
