@@ -1,6 +1,6 @@
 package mjhaeb
 
-import "github.com/kevin-chtw/tw_common/mahjong"
+import "github.com/kevin-chtw/tw_common/gamebase/mahjong"
 
 type CheckerPao struct{ play *Play } // 点炮检查器
 func NewCheckerPao(play *Play) mahjong.CheckerWait {

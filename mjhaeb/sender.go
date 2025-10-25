@@ -1,8 +1,8 @@
 package mjhaeb
 
 import (
-	"github.com/kevin-chtw/tw_common/game"
-	"github.com/kevin-chtw/tw_common/mahjong"
+	"github.com/kevin-chtw/tw_common/gamebase/game"
+	"github.com/kevin-chtw/tw_common/gamebase/mahjong"
 	"github.com/kevin-chtw/tw_proto/game/pbhaeb"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"

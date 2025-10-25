@@ -1,7 +1,7 @@
 package mjhaeb
 
 import (
-	"github.com/kevin-chtw/tw_common/mahjong"
+	"github.com/kevin-chtw/tw_common/gamebase/mahjong"
 )
 
 const (

@@ -1,6 +1,6 @@
 package mjhaeb
 
-import "github.com/kevin-chtw/tw_common/mahjong"
+import "github.com/kevin-chtw/tw_common/gamebase/mahjong"
 
 type CheckerHu struct {
 	play *Play
