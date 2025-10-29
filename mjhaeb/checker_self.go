@@ -10,15 +10,15 @@ func NewCheckerHu(play *Play) mahjong.CheckerSelf {
 	return &CheckerHu{play: play}
 }
 
-func (c *CheckerHu) Check(opt *mahjong.Operates, tips []int) []int {
+func (c *CheckerHu) Check(opt *mahjong.Operates) {
 	playData := c.play.GetPlayData(c.play.GetCurSeat())
 	if !playData.IsTing() {
-		return tips
+		return
 	}
 
 	huTypes := c.play.selfHuTypes()
 	if len(huTypes) == 0 {
-		return tips
+		return
 	}
 	result := &mahjong.HuResult{
 		HuTypes:   huTypes,
@@ -27,7 +27,6 @@ func (c *CheckerHu) Check(opt *mahjong.Operates, tips []int) []int {
 
 	opt.RemoveOperate(mahjong.OperateDiscard)
 	c.play.AddHuOperate(opt, c.play.GetCurSeat(), result, true)
-	return tips
 }
 
 // 听检查器
@@ -38,26 +37,25 @@ type CheckerTing struct {
 func NewCheckerTing(play *Play) mahjong.CheckerSelf {
 	return &CheckerTing{play: play}
 }
-func (c *CheckerTing) Check(opt *mahjong.Operates, tips []int) []int {
+func (c *CheckerTing) Check(opt *mahjong.Operates) {
 	if opt.IsMustHu {
-		return tips
+		return
 	}
 
 	playData := c.play.GetPlayData(c.play.GetCurSeat())
 	if playData.IsTing() {
-		return tips
+		return
 	}
 	huData := mahjong.NewHuData(playData, true)
 	callData := huData.CheckCall()
 	if len(callData) <= 0 {
-		return tips
+		return
 	}
 
 	if playData.IsMenQin() {
-		tips = append(tips, mahjong.TipsMenQin)
-		return tips
+		opt.Tips = append(opt.Tips, mahjong.TipsMenQin)
+		return
 	}
 
 	opt.AddOperate(mahjong.OperateTing)
-	return tips
 }

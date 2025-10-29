@@ -6,23 +6,22 @@ type CheckerPao struct{ play *Play } // 点炮检查器
 func NewCheckerPao(play *Play) mahjong.CheckerWait {
 	return &CheckerPao{play: play}
 }
-func (c *CheckerPao) Check(seat int32, opt *mahjong.Operates, tips []int) []int {
+func (c *CheckerPao) Check(seat int32, opt *mahjong.Operates) {
 	playData := c.play.GetPlayData(seat)
 	if !playData.IsTing() {
-		return tips
+		return
 	}
 
 	huTypes := c.play.paoHuTypes(seat)
 	if len(huTypes) == 0 {
-		return tips
+		return
 	} else if c.play.PlayConf.OnlyZimo {
-		tips = append(tips, mahjong.TipsOnlyZiMo)
-		return tips
+		opt.Tips = append(opt.Tips, mahjong.TipsOnlyZiMo)
+		return
 	}
 	result := &mahjong.HuResult{
 		HuTypes:   huTypes,
 		TotalMuti: totalMuti(huTypes),
 	}
 	c.play.AddHuOperate(opt, seat, result, true)
-	return tips
 }
