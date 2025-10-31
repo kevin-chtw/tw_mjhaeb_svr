@@ -1,6 +1,9 @@
 package mjhaeb
 
-import "github.com/kevin-chtw/tw_common/gamebase/mahjong"
+import (
+	"github.com/kevin-chtw/tw_common/gamebase/mahjong"
+	"github.com/kevin-chtw/tw_proto/game/pbmj"
+)
 
 type CheckerHu struct {
 	play *Play
@@ -20,9 +23,9 @@ func (c *CheckerHu) Check(opt *mahjong.Operates) {
 	if len(huTypes) == 0 {
 		return
 	}
-	result := &mahjong.HuResult{
-		HuTypes:   huTypes,
-		TotalMuti: totalMuti(huTypes),
+	result := &pbmj.MJHuData{
+		HuTypes: huTypes,
+		Multi:   totalMuti(huTypes),
 	}
 
 	opt.RemoveOperate(mahjong.OperateDiscard)
