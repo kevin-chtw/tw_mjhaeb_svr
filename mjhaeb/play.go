@@ -36,9 +36,9 @@ func NewPlay(game *Game) *Play {
 	return p
 }
 
-func (p *Play) CheckHu(data *mahjong.HuData) bool {
+func (p *Play) CheckHu(data *mahjong.HuData) mahjong.HuCoreType {
 	if data.IsTing() && p.isBaoTile(p.GetCurTile()) {
-		return true
+		return mahjong.HU_PIN
 	}
 	return data.CanHu()
 }

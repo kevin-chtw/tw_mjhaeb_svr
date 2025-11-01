@@ -74,6 +74,6 @@ func (s *service) GetHuTypes(data *mahjong.HuData) []int32 {
 	return getHuTypes(data)
 }
 
-func (s *service) TotalMuti(types []int32) int64 {
+func (s *service) TotalMuti(types []int32, conf *mahjong.Rule) int64 {
 	return totalMuti(types)
 }
