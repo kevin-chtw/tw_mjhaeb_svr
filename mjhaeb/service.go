@@ -2,6 +2,7 @@ package mjhaeb
 
 import (
 	"github.com/kevin-chtw/tw_common/gamebase/mahjong"
+	"github.com/kevin-chtw/tw_proto/game/pbmj"
 )
 
 func init() {
@@ -70,10 +71,9 @@ func (s *service) GetFdRules() map[string]int32 {
 	return s.fdRules
 }
 
-func (s *service) GetHuTypes(data *mahjong.HuData) []int32 {
-	return getHuTypes(data)
-}
-
-func (s *service) TotalMuti(types []int32, conf *mahjong.Rule) int64 {
-	return totalMuti(types)
+func (s *service) GetHuResult(data *mahjong.HuData) *pbmj.MJHuData {
+	result := data.InitHuResult()
+	result.HuTypes = append(result.HuTypes, getHuTypes(data)...)
+	result.Multi = totalMuti(result.HuTypes)
+	return result
 }
