@@ -21,7 +21,6 @@ var priority = []int32{
 type ReqOperate struct {
 	Operate int32        //操作
 	tile    mahjong.Tile //吃牌吃最左的牌
-	disTile mahjong.Tile //吃听、碰听时出的牌
 }
 
 type StateWait struct {
@@ -59,7 +58,7 @@ func (s *StateWait) OnEnter() {
 		if operates.Value != mahjong.OperatePass && !s.game.GetPlayer(i).IsTrusted() {
 			s.game.sender.SendRequestAck(i, operates)
 		} else {
-			s.setReqOperate(i, s.getDefaultOperate(i), s.game.play.GetCurTile(), mahjong.TileNull)
+			s.setReqOperate(i, s.getDefaultOperate(i), s.game.play.GetCurTile())
 		}
 	}
 
@@ -80,7 +79,7 @@ func (s *StateWait) OnMsg(seat int32, msg proto.Message) error {
 	if !s.isValidOperate(seat, int(optReq.RequestType)) {
 		return errors.New("invalid operate")
 	}
-	s.setReqOperate(seat, optReq.RequestType, mahjong.Tile(optReq.Tile), mahjong.Tile(optReq.DisTile))
+	s.setReqOperate(seat, optReq.RequestType, mahjong.Tile(optReq.Tile))
 	s.tryHandleAction()
 	return nil
 }
@@ -94,15 +93,15 @@ func (s *StateWait) Timeout() {
 			continue
 		}
 		if _, ok := s.reqOperateForSeats[i]; !ok {
-			s.setReqOperate(i, s.getDefaultOperate(i), s.game.play.GetCurTile(), mahjong.TileNull)
+			s.setReqOperate(i, s.getDefaultOperate(i), s.game.play.GetCurTile())
 		}
 	}
 	s.tryHandleAction()
 }
 
-func (s *StateWait) setReqOperate(seat, operate int32, tile, disTile mahjong.Tile) {
+func (s *StateWait) setReqOperate(seat, operate int32, tile mahjong.Tile) {
 	if s.game.IsValidSeat(seat) {
-		s.reqOperateForSeats[seat] = &ReqOperate{Operate: operate, tile: tile, disTile: disTile}
+		s.reqOperateForSeats[seat] = &ReqOperate{Operate: operate, tile: tile}
 	}
 }
 
@@ -158,18 +157,21 @@ func (s *StateWait) excuteOperate(seat int32, operate *ReqOperate) {
 
 func (s *StateWait) ponTing(seat int32, operate *ReqOperate) {
 	ponTile := s.game.play.GetCurTile()
-	s.game.play.PonTing(seat, operate.disTile)
-	s.game.sender.SendPonAck(seat, ponTile)
-	s.game.sender.SendTingAck(seat, operate.disTile)
-	s.toWaitState(seat)
+	s.game.play.Pon(seat)
+	s.game.sender.SendPonAck(seat, ponTile, true)
+	s.toTingState(seat)
 }
 
 func (s *StateWait) chowTing(seat int32, operate *ReqOperate) {
 	chowTile := s.game.play.GetCurTile()
-	s.game.play.ChowTing(seat, operate.tile, operate.disTile)
-	s.game.sender.SendChowAck(seat, chowTile, operate.tile)
-	s.game.sender.SendTingAck(seat, operate.disTile)
-	s.toWaitState(seat)
+	s.game.play.Chow(seat, operate.tile)
+	s.game.sender.SendChowAck(seat, chowTile, operate.tile, true)
+	s.toTingState(seat)
+}
+
+func (s *StateWait) toTingState(seat int32) {
+	s.game.play.DoSwitchSeat(seat)
+	s.game.SetNextState(NewStateTing)
 }
 
 func (s *StateWait) kon(seat int32, operate *ReqOperate) {
@@ -180,13 +182,13 @@ func (s *StateWait) kon(seat int32, operate *ReqOperate) {
 
 func (s *StateWait) pon(seat int32, operate *ReqOperate) {
 	s.game.play.Pon(seat)
-	s.game.sender.SendPonAck(seat, s.game.play.GetCurTile())
+	s.game.sender.SendPonAck(seat, s.game.play.GetCurTile(), false)
 	s.toDiscardState(seat)
 }
 
 func (s *StateWait) chow(seat int32, operate *ReqOperate) {
 	s.game.play.Chow(seat, operate.tile)
-	s.game.sender.SendChowAck(seat, s.game.play.GetCurTile(), operate.tile)
+	s.game.sender.SendChowAck(seat, s.game.play.GetCurTile(), operate.tile, false)
 	s.toDiscardState(seat)
 }
 

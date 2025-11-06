@@ -34,7 +34,7 @@ func getHuTypes(huData *mahjong.HuData) []int32 {
 	return types
 }
 func isKaDang(huData *mahjong.HuData) bool {
-	waitTile := huData.GetCurTile()
+	waitTile := huData.CurTile
 	if waitTile.IsHonor() {
 		return false // 字牌不考虑卡当
 	}
