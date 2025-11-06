@@ -34,34 +34,27 @@ func getHuTypes(huData *mahjong.HuData) []int32 {
 	return types
 }
 func isKaDang(huData *mahjong.HuData) bool {
-	waitTile := huData.CurTile
-	if waitTile.IsHonor() {
-		return false // 字牌不考虑卡当
-	}
-
-	tileMap := make(map[mahjong.Tile]int)
-	for _, tile := range huData.Tiles {
-		tileMap[tile]++
-	}
-
-	if count := tileMap[waitTile]; count != 1 && count != 4 {
+	if len(huData.PlayData.GetCallData()) > 1 { //卡当仅一个听口
 		return false
 	}
 
-	color, point := waitTile.Info()
-	// 检查卡张情况 (如3和5，听4)
-	if point > 0 && point < 8 {
-		if tileMap[mahjong.MakeTile(color, point-1)] > 0 && tileMap[mahjong.MakeTile(color, point+1)] > 0 {
-			return true
-		}
+	waitTile := huData.CurTile
+	point := waitTile.Point()
+
+	if point <= 0 || point >= 8 { // 在0-8范围内，1-7需要检查相邻牌
+		return false
 	}
 
-	// 检查边张情况 (如01听2，78听6)
-	if point == 2 && tileMap[mahjong.MakeTile(color, point-1)] > 0 && tileMap[mahjong.MakeTile(color, point-2)] > 0 {
+	if huData.CheckShun(waitTile, point-1, point+1) {
 		return true
 	}
-	if point == 6 && tileMap[mahjong.MakeTile(color, point+1)] > 0 && tileMap[mahjong.MakeTile(color, point+2)] > 0 {
-		return true
+
+	switch point {
+	case 2:
+		return huData.CheckShun(waitTile, point-1, point-2) && !huData.CheckShun(waitTile, point+1, point+2)
+	case 6:
+		return !huData.CheckShun(waitTile, point-1, point-2) && huData.CheckShun(waitTile, point+1, point+2)
+	default:
+		return false
 	}
-	return false
 }

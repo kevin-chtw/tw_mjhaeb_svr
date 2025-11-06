@@ -2,7 +2,6 @@ package mjhaeb
 
 import (
 	"github.com/kevin-chtw/tw_common/gamebase/mahjong"
-	"github.com/kevin-chtw/tw_proto/game/pbmj"
 )
 
 type CheckerPao struct{ play *Play } // 点炮检查器
@@ -15,16 +14,15 @@ func (c *CheckerPao) Check(seat int32, opt *mahjong.Operates) {
 		return
 	}
 
-	huTypes := c.play.paoHuTypes(seat)
-	if len(huTypes) == 0 {
-		return
-	} else if c.play.PlayConf.OnlyZimo {
-		opt.Tips = append(opt.Tips, mahjong.TipsOnlyZiMo)
+	data := mahjong.NewHuData(playData, false)
+	result, hu := data.CheckHu()
+	if !hu {
 		return
 	}
-	result := &pbmj.MJHuData{
-		HuTypes: huTypes,
-		Multi:   totalMuti(huTypes),
+
+	if c.play.PlayConf.OnlyZimo {
+		opt.Tips = append(opt.Tips, mahjong.TipsOnlyZiMo)
+		return
 	}
 	c.play.AddHuOperate(opt, seat, result, true)
 }
