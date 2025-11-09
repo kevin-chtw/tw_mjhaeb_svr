@@ -30,8 +30,7 @@ func main() {
 	defer app.Shutdown()
 
 	logger.Log.Infof("Pitaya server of type %s started", serverType)
-	game.Register(serverType, mjhaeb.NewGame)
-	game.InitGame(app)
+	game.Init(app, mjhaeb.NewGame, game.NewBotPlayer)
 	initServices()
 	app.Start()
 }
